@@ -1,120 +1,48 @@
+# Digital-Facial-Recognisation-Attendance-System
 
-# 📘 Software Requirement Specification (SRS)
-### For: AI-Based Face Recognition Attendance System
+<img width="1919" height="993" alt="image" src="https://github.com/user-attachments/assets/e5b58429-70fa-4230-8d5c-47fc37f210e5" />
 
----
+The Digital Facial Recognition Attendance System is an advanced, automated system designed to track and manage attendance efficiently using facial recognition technology 🙂🔍. Unlike traditional methods (manual registers 📝 or RFID cards 💳), this system uses computer vision 🤖 and AI 🧠 to identify individuals in real-time ⏱️, ensuring accuracy ✅, security 🔐, and time-saving management ⏳.
 
-## 📖 Introduction
+✨ Key Features
 
-### 🎯 Purpose
-The system provides rural schools with a **low-cost, AI-powered attendance tracking solution**.  
-It reduces manual work, eliminates paper registers, and provides real-time attendance data.  
-Teachers and administrators can securely view, manage, and report attendance records.
+Facial Recognition 🙂🔍: Utilizes AI and deep learning 🧠📊 to detect and recognize faces in real-time. Each person is uniquely identified to prevent proxy attendance 🚫.
 
-### 📌 Scope
-- Uses a single camera in each classroom to recognize students in real time.  
-- Students recognized are marked **present**; those not detected are **absent**.  
-- Teachers and administrators access attendance records via a **web-based dashboard**.  
-- Removes the need for costly RFID/biometric devices, ensuring affordability and scalability.  
+Automated Attendance Logging 🖥️✅: Marks attendance automatically, eliminating manual entry errors.
 
-### 👥 Stakeholders
-- **Students** – Attendance tracked automatically.  
-- **Teachers/Class Teachers** – Manage and view class attendance.  
-- **School Administrators** – Access and monitor school-wide attendance reports.  
+Database Integration 💾📂: Stores records securely (SQLite/MySQL) for easy retrieval, analysis 📈, and reporting.
 
-### 🔑 Definitions
-- **AI** – Artificial Intelligence.  
-- **Dashboard** – Web interface for monitoring/managing attendance.  
-- **Recognition Model** – AI algorithm trained with student images.  
+User Management 👤⚙️: Admins can add, update, or remove users along with facial data.
 
----
+Reporting & Analytics 📊🗂️: Generates daily, weekly, or monthly attendance reports and visual graphs for monitoring trends.
 
-## 📝 Overall Description
+Security & Accuracy 🔐🎯: Works even in varied lighting 🌙💡 and with masks 😷 or glasses 🕶️.
 
-### 📷 Product Perspective
-- Integrated camera + AI face recognition model.  
-- Data securely stored in a database.  
-- Accessible via a lightweight web interface.  
+GUI Dashboard 🖥️📋: Interactive dashboard for admins/teachers to manage attendance and view stats.
 
-### ⚡ Product Functions
-- Automatic attendance marking.  
-- Role-based dashboards.  
-- Daily/Monthly reports.  
-- Export to Excel/PDF.  
-- Secure storage & retrieval.  
+Optional Notifications ✉️📱: Can send email/SMS alerts about attendance status.
 
-### 👩‍🏫 User Classes
-- **Teachers** – Non-technical, simple UI required.  
-- **Administrators** – Need both detailed and summary reports.  
+📍 Applications
 
-### 💻 Operating Environment
-- **Hardware**: Low-cost PC with camera.  
-- **Software**: Browser-based web app.  
-- **Database**: Secure attendance log storage.  
+🏫 Schools, colleges, and universities
+🏢 Corporate offices for employee tracking
+🎓 Workshops, seminars, and training programs
 
-### 🔒 Constraints
-- Must work on affordable hardware with limited internet.  
-- Ensure privacy and data security.  
-- Handle multiple classrooms simultaneously.  
+🛠️ Technology Stack
 
-### 📌 Assumptions
-- Reliable camera setup in classrooms.  
-- Student image dataset available for AI training.  
-- Basic internet/computer availability.  
+Programming Language: Python 🐍
 
----
+Libraries/Frameworks: OpenCV 📷, Mediapipe, RandomForestClassifier 🧩, Face Recognition 🙂🔍, Flask 🌐
 
-## ⚙️ Functional Requirements
+Database: SQLite3 💾
 
-1. **User Authentication**
-   - Secure login for teachers & administrators.  
-   - Role-based access (teacher → class only, admin → all).  
+GUI: HTML| CSS | javascript | Web-based dashboard 🖥️
 
-2. **Attendance Management**
-   - AI marks present/absent automatically.  
-   - Secure database logging.  
+Optional: Email/SMS APIs ✉️📱
 
-3. **Dashboard**
-   - Teachers → class attendance view.  
-   - Admins → school-wide attendance view.  
-   - Attendance summaries in percentages.  
+💡 Benefits
 
-4. **Reporting**
-   - Generate daily/weekly/monthly reports.  
-   - Export to Excel/PDF.  
-   - Graphical trend summaries.  
-
-5. **Student Data Management**
-   - Add/update student images for AI training.  
-   - Update records as appearance changes.  
-   - Maintain historical logs.  
-
----
-
-## 📊 Non-Functional Requirements
-- **Performance**: Real-time recognition during school hours.  
-- **Scalability**: Support multiple classes & hundreds of students.  
-- **Usability**: Teacher-friendly dashboard.  
-- **Security**: Encrypted storage, role-based access.  
-- **Cost Efficiency**: Runs on affordable hardware.  
-- **Reliability**: Continuous operation throughout the day.  
-- **Maintainability**: Easy retraining and updates.  
-
----
-
-## 🔄 System Models
-
-- **Use Case Diagram** → Teacher/Admin interactions with system.  
-- **Data Flow Diagram** → Camera → AI Recognition → Database → Dashboard.  
-
----
-
-## 🚀 Future Enhancements
-- Mobile app integration.  
-- SMS alerts for absentees.  
-- Cloud-based multi-school dashboards.  
-
----
-
-## 📝 License
-This project is available under the **MIT License**.
+✅ Reduces manual effort & paperwork
+✅ Ensures accuracy & prevents fraudulent attendance
+✅ Provides real-time data & analytics 📈
+✅ Scalable for institutions of any size 🌍
