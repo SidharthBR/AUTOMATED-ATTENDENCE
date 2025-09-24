@@ -1,14 +1,14 @@
 import os
 import io
 import threading
-import sqlite3
 import datetime
 import json
 from flask import Flask, render_template, request, jsonify, send_file, abort
 from model import train_model_background, extract_embedding_for_image, MODEL_PATH
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(APP_DIR, "attendance.db")
+STUDENTS_FILE = os.path.join(APP_DIR, "students.json")
+ATTENDANCE_FILE = os.path.join(APP_DIR, "attendance.json")
 DATASET_DIR = os.path.join(APP_DIR, "dataset")
 os.makedirs(DATASET_DIR, exist_ok=True)
 
@@ -17,26 +17,27 @@ TRAIN_STATUS_FILE = os.path.join(APP_DIR, "train_status.json")
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # ---------- DB helpers ----------
+def load_json_file(filepath, default=None):
+    if default is None:
+        default = []
+    if not os.path.exists(filepath):
+        return default
+    try:
+        with open(filepath, 'r') as f:
+            return json.load(f)
+    except:
+        return default
+
+def save_json_file(filepath, data):
+    with open(filepath, 'w') as f:
+        json.dump(data, f, indent=2)
+
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("""CREATE TABLE IF NOT EXISTS students (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    roll TEXT,
-                    class TEXT,
-                    section TEXT,
-                    reg_no TEXT,
-                    created_at TEXT
-                )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS attendance (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    student_id INTEGER,
-                    name TEXT,
-                    timestamp TEXT
-                )""")
-    conn.commit()
-    conn.close()
+    # Initialize JSON files if they don't exist
+    if not os.path.exists(STUDENTS_FILE):
+        save_json_file(STUDENTS_FILE, [])
+    if not os.path.exists(ATTENDANCE_FILE):
+        save_json_file(ATTENDANCE_FILE, [])
 
 init_db()
 
@@ -62,17 +63,22 @@ def index():
 # Dashboard simple API for attendance stats (last 30 days)
 @app.route("/attendance_stats")
 def attendance_stats():
-    import pandas as pd
-    conn = sqlite3.connect(DB_PATH)
-    df = pd.read_sql_query("SELECT timestamp FROM attendance", conn)
-    conn.close()
-    if df.empty:
+    attendance_data = load_json_file(ATTENDANCE_FILE, [])
+    if not attendance_data:
         from datetime import date, timedelta
         days = [(date.today() - datetime.timedelta(days=i)).strftime("%d-%b") for i in range(29, -1, -1)]
         return jsonify({"dates": days, "counts": [0]*30})
-    df['date'] = pd.to_datetime(df['timestamp']).dt.date
+    
+    # Process attendance data
     last_30 = [ (datetime.date.today() - datetime.timedelta(days=i)) for i in range(29, -1, -1) ]
-    counts = [ int(df[df['date'] == d].shape[0]) for d in last_30 ]
+    counts = []
+    for d in last_30:
+        count = 0
+        for record in attendance_data:
+            record_date = datetime.datetime.fromisoformat(record['timestamp']).date()
+            if record_date == d:
+                count += 1
+        counts.append(count)
     dates = [ d.strftime("%d-%b") for d in last_30 ]
     return jsonify({"dates": dates, "counts": counts})
 
@@ -90,14 +96,24 @@ def add_student():
     reg_no = data.get("reg_no","").strip()
     if not name:
         return jsonify({"error":"name required"}), 400
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    
+    students = load_json_file(STUDENTS_FILE, [])
+    # Generate new ID
+    sid = max([s.get('id', 0) for s in students], default=0) + 1
     now = datetime.datetime.utcnow().isoformat()
-    c.execute("INSERT INTO students (name, roll, class, section, reg_no, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-              (name, roll, cls, sec, reg_no, now))
-    sid = c.lastrowid
-    conn.commit()
-    conn.close()
+    
+    new_student = {
+        'id': sid,
+        'name': name,
+        'roll': roll,
+        'class': cls,
+        'section': sec,
+        'reg_no': reg_no,
+        'created_at': now
+    }
+    students.append(new_student)
+    save_json_file(STUDENTS_FILE, students)
+    
     # create dataset folder for this student
     os.makedirs(os.path.join(DATASET_DIR, str(sid)), exist_ok=True)
     return jsonify({"student_id": sid})
@@ -168,16 +184,25 @@ def recognize_face():
         if conf < 0.5:
             return jsonify({"recognized": False, "confidence": float(conf)}), 200
         # find student name
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("SELECT name FROM students WHERE id=?", (int(pred_label),))
-        row = c.fetchone()
-        name = row[0] if row else "Unknown"
+        students = load_json_file(STUDENTS_FILE, [])
+        student = next((s for s in students if s['id'] == int(pred_label)), None)
+        name = student['name'] if student else "Unknown"
+        
         # save attendance record with timestamp
+        attendance_data = load_json_file(ATTENDANCE_FILE, [])
+        # Generate new ID
+        att_id = max([a.get('id', 0) for a in attendance_data], default=0) + 1
         ts = datetime.datetime.utcnow().isoformat()
-        c.execute("INSERT INTO attendance (student_id, name, timestamp) VALUES (?, ?, ?)", (int(pred_label), name, ts))
-        conn.commit()
-        conn.close()
+        
+        new_attendance = {
+            'id': att_id,
+            'student_id': int(pred_label),
+            'name': name,
+            'timestamp': ts
+        }
+        attendance_data.append(new_attendance)
+        save_json_file(ATTENDANCE_FILE, attendance_data)
+        
         return jsonify({"recognized": True, "student_id": int(pred_label), "name": name, "confidence": float(conf)}), 200
     except Exception as e:
         app.logger.exception("recognize error")
@@ -187,40 +212,49 @@ def recognize_face():
 @app.route("/attendance_record", methods=["GET"])
 def attendance_record():
     period = request.args.get("period", "all")  # all, daily, weekly, monthly
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    q = "SELECT id, student_id, name, timestamp FROM attendance"
-    params = ()
+    attendance_data = load_json_file(ATTENDANCE_FILE, [])
+    filtered_records = []
+    
     if period == "daily":
         today = datetime.date.today().isoformat()
-        q += " WHERE date(timestamp) = ?"
-        params = (today,)
+        for record in attendance_data:
+            record_date = datetime.datetime.fromisoformat(record['timestamp']).date().isoformat()
+            if record_date == today:
+                filtered_records.append(record)
     elif period == "weekly":
         start = (datetime.date.today() - datetime.timedelta(days=7)).isoformat()
-        q += " WHERE date(timestamp) >= ?"
-        params = (start,)
+        for record in attendance_data:
+            record_date = datetime.datetime.fromisoformat(record['timestamp']).date().isoformat()
+            if record_date >= start:
+                filtered_records.append(record)
     elif period == "monthly":
         start = (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
-        q += " WHERE date(timestamp) >= ?"
-        params = (start,)
-    q += " ORDER BY timestamp DESC LIMIT 5000"
-    c.execute(q, params)
-    rows = c.fetchall()
-    conn.close()
+        for record in attendance_data:
+            record_date = datetime.datetime.fromisoformat(record['timestamp']).date().isoformat()
+            if record_date >= start:
+                filtered_records.append(record)
+    else:
+        filtered_records = attendance_data
+    
+    # Sort by timestamp descending and limit to 5000
+    filtered_records.sort(key=lambda x: x['timestamp'], reverse=True)
+    filtered_records = filtered_records[:5000]
+    
+    # Convert to tuple format for template compatibility
+    rows = [(r['id'], r['student_id'], r['name'], r['timestamp']) for r in filtered_records]
     return render_template("attendance_record.html", records=rows, period=period)
 
 # -------- CSV download --------
 @app.route("/download_csv", methods=["GET"])
 def download_csv():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, student_id, name, timestamp FROM attendance ORDER BY timestamp DESC")
-    rows = c.fetchall()
-    conn.close()
+    attendance_data = load_json_file(ATTENDANCE_FILE, [])
+    # Sort by timestamp descending
+    attendance_data.sort(key=lambda x: x['timestamp'], reverse=True)
+    
     output = io.StringIO()
     output.write("id,student_id,name,timestamp\n")
-    for r in rows:
-        output.write(f'{r[0]},{r[1]},{r[2]},{r[3]}\n')
+    for r in attendance_data:
+        output.write(f'{r["id"]},{r["student_id"]},{r["name"]},{r["timestamp"]}\n')
     mem = io.BytesIO()
     mem.write(output.getvalue().encode("utf-8"))
     mem.seek(0)
@@ -229,22 +263,23 @@ def download_csv():
 # -------- Students API for listing/editing --------
 @app.route("/students", methods=["GET"])
 def students_list():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT id, name, roll, class, section, reg_no, created_at FROM students ORDER BY id DESC")
-    rows = c.fetchall()
-    conn.close()
-    data = [ {"id":r[0],"name":r[1],"roll":r[2],"class":r[3],"section":r[4],"reg_no":r[5],"created_at":r[6]} for r in rows ]
-    return jsonify({"students": data})
+    students = load_json_file(STUDENTS_FILE, [])
+    # Sort by id descending
+    students.sort(key=lambda x: x['id'], reverse=True)
+    return jsonify({"students": students})
 
 @app.route("/students/<int:sid>", methods=["DELETE"])
 def delete_student(sid):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("DELETE FROM students WHERE id=?", (sid,))
-    c.execute("DELETE FROM attendance WHERE student_id=?", (sid,))
-    conn.commit()
-    conn.close()
+    # Remove student
+    students = load_json_file(STUDENTS_FILE, [])
+    students = [s for s in students if s['id'] != sid]
+    save_json_file(STUDENTS_FILE, students)
+    
+    # Remove attendance records
+    attendance_data = load_json_file(ATTENDANCE_FILE, [])
+    attendance_data = [a for a in attendance_data if a['student_id'] != sid]
+    save_json_file(ATTENDANCE_FILE, attendance_data)
+    
     # also delete dataset folder
     folder = os.path.join(DATASET_DIR, str(sid))
     if os.path.isdir(folder):
