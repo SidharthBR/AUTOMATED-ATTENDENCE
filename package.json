@@ -1,0 +1,12 @@
+{
+  "name": "nexus-attendance-system",
+  "version": "1.0.0",
+  "description": "Digital Facial Recognition Attendance System",
+  "main": "app.py",
+  "scripts": {
+    "start": "python app.py"
+  },
+  "keywords": ["attendance", "facial-recognition", "python", "flask"],
+  "author": "",
+  "license": "MIT"
+}
