@@ -22,18 +22,18 @@ document.addEventListener("DOMContentLoaded", () => {
     trainBtn.disabled = true;
     const start = await fetch("/train_model");
     if (!start.ok && start.status !== 202) {
-      alert("Failed to start training");
+      alert("❌ Neural network initialization failed");
       trainBtn.disabled = false;
       return;
     }
-    trainMsg.innerText = "Training started...";
+    trainMsg.innerText = "🧠 Neural network training initiated...";
     // poll until progress==100 or not running
     const t = setInterval(async () => {
       const s = await pollStatus();
       if (s && s.progress >= 100) {
         clearInterval(t);
         trainBtn.disabled = false;
-        alert("Training completed");
+        alert("✅ Neural network training completed successfully");
       }
     }, 1500);
   });
@@ -49,9 +49,38 @@ document.addEventListener("DOMContentLoaded", () => {
         type: "bar",
         data: {
           labels: data.dates,
-          datasets: [{ label: "Attendance", data: data.counts, backgroundColor: "rgba(59,130,246,0.7)" }]
+          datasets: [{ 
+            label: "Verified Identities", 
+            data: data.counts, 
+            backgroundColor: "rgba(0, 255, 255, 0.7)",
+            borderColor: "rgba(0, 255, 255, 1)",
+            borderWidth: 2
+          }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#00ffff',
+                font: {
+                  family: 'Orbitron'
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#e0e6ed' },
+              grid: { color: 'rgba(0, 255, 255, 0.1)' }
+            },
+            y: {
+              ticks: { color: '#e0e6ed' },
+              grid: { color: 'rgba(0, 255, 255, 0.1)' }
+            }
+          }
+        }
       });
     } else {
       chart.data.labels = data.dates;

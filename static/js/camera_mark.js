@@ -16,10 +16,10 @@ startMarkBtn.addEventListener("click", async () => {
     markStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
     markVideo.srcObject = markStream;
     await markVideo.play();
-    markStatus.innerText = "Scanning...";
+    markStatus.innerText = "🔍 Biometric scanner active - Analyzing...";
     markInterval = setInterval(captureAndRecognize, 1200);
   } catch (err) {
-    alert("Camera error: " + err.message);
+    alert("❌ Scanner malfunction: " + err.message);
     startMarkBtn.disabled = false;
     stopMarkBtn.disabled = true;
   }
@@ -30,7 +30,7 @@ stopMarkBtn.addEventListener("click", () => {
   if (markStream) markStream.getTracks().forEach(t => t.stop());
   startMarkBtn.disabled = false;
   stopMarkBtn.disabled = true;
-  markStatus.innerText = "Stopped";
+  markStatus.innerText = "🛑 Scanner deactivated";
 });
 
 async function captureAndRecognize() {
@@ -46,17 +46,17 @@ async function captureAndRecognize() {
     const res = await fetch("/recognize_face", { method: "POST", body: fd });
     const j = await res.json();
     if (j.recognized) {
-      markStatus.innerText = `Recognized: ${j.name} (conf ${Math.round(j.confidence*100)}%)`;
+      markStatus.innerText = `✅ IDENTITY VERIFIED: ${j.name} (Confidence: ${Math.round(j.confidence*100)}%)`;
       if (!recognizedIds.has(j.student_id)) {
         recognizedIds.add(j.student_id);
         const li = document.createElement("li");
         li.className = "list-group-item";
-        li.innerText = `${j.name} — ${new Date().toLocaleTimeString()}`;
+        li.innerText = `✅ ${j.name} — ${new Date().toLocaleTimeString()}`;
         recognizedList.prepend(li);
       }
     } else {
-      if (j.error) markStatus.innerText = `Not recognized: ${j.error}`;
-      else markStatus.innerText = `Not recognized`;
+      if (j.error) markStatus.innerText = `❌ VERIFICATION FAILED: ${j.error}`;
+      else markStatus.innerText = `❌ IDENTITY NOT RECOGNIZED`;
     }
   } catch (err) {
     console.error(err);

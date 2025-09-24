@@ -22,7 +22,7 @@ document.getElementById("studentForm").addEventListener("submit", async (e) => {
   }
   const j = await res.json();
   student_id = j.student_id;
-  alert("Student info saved. Click Start Capture to open the camera.");
+  alert("✅ Student data archived. Initialize biometric capture sequence.");
   startCaptureBtn.disabled = false;
 });
 
@@ -50,7 +50,7 @@ async function captureImagesLoop() {
     const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.9));
     images.push(blob);
     captured++;
-    captureStatus.innerText = `Captured ${captured} / ${maxImages}`;
+    captureStatus.innerText = `🔄 Biometric Samples: ${captured} / ${maxImages}`;
     progressBar.style.width = `${(captured / maxImages) * 100}%`;
     // small visual flash
     await new Promise(r => setTimeout(r, 200));
@@ -62,10 +62,10 @@ async function captureImagesLoop() {
   images.forEach((b, i) => form.append("images[]", b, `img_${i}.jpg`));
   const resp = await fetch("/upload_face", { method: "POST", body: form });
   if (resp.ok) {
-    alert("Captured images uploaded");
+    alert("✅ Biometric data successfully uploaded to NEXUS database");
     addStudentBtn.disabled = false;
   } else {
-    alert("Upload failed");
+    alert("❌ Upload failed - Please retry biometric capture");
   }
 
   // stop camera
@@ -73,6 +73,6 @@ async function captureImagesLoop() {
 }
 
 addStudentBtn.addEventListener("click", () => {
-  alert("Student record complete. Returning to dashboard.");
+  alert("✅ Student registration complete. Returning to NEXUS control center.");
   window.location.href = "/";
 });
