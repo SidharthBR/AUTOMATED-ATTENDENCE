@@ -1,5 +1,5 @@
 {
-  "name": "nexus-attendance-system",
+  "name": "AFRAS-attendance-system",
   "version": "1.0.0",
   "description": "Digital Facial Recognition Attendance System",
   "main": "app.py",

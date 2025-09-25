@@ -62,7 +62,7 @@ async function captureImagesLoop() {
   images.forEach((b, i) => form.append("images[]", b, `img_${i}.jpg`));
   const resp = await fetch("/upload_face", { method: "POST", body: form });
   if (resp.ok) {
-    alert("✅ Biometric data successfully uploaded to NEXUS database");
+    alert("✅ Biometric data successfully uploaded to AFRAS database");
     addStudentBtn.disabled = false;
   } else {
     alert("❌ Upload failed - Please retry biometric capture");
@@ -73,6 +73,6 @@ async function captureImagesLoop() {
 }
 
 addStudentBtn.addEventListener("click", () => {
-  alert("✅ Student registration complete. Returning to NEXUS control center.");
+  alert("✅ Student registration complete. Returning to AFRAS control center.");
   window.location.href = "/";
 });
